@@ -54,3 +54,16 @@ CREATE TABLE `descargas` (
     FOREIGN KEY (`videojuegocod`) REFERENCES `videojuegos`(`videojuegocod`),
     FOREIGN KEY (`transaccionid`) REFERENCES `transacciones`(`transaccionid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Tabla de Videojuegos
+CREATE TABLE `videojuegos` (
+    `videojuegocod` INT AUTO_INCREMENT PRIMARY KEY,
+    `titulo` VARCHAR(150),
+    `descripcion` TEXT,
+    `precio` DECIMAL(10,2),
+    `imagen` VARCHAR(255),
+    `archivo_descarga` VARCHAR(255),
+    `formato` ENUM('digital', 'fisico', 'ambos') DEFAULT 'digital',
+    `creado_en` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `videojuegoest` CHAR(3) DEFAULT 'ACT'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
