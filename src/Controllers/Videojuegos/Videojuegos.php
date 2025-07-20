@@ -2,16 +2,17 @@
 
 namespace Controllers\Videojuegos;
 
-use Controllers\PublicController;
+use Controllers\PrivateController;
 use Dao\Videojuegos\Videojuegos as VideojuegosDAO;
 use Views\Renderer;
 
-class Videojuegos extends PublicController
+class Videojuegos extends PrivateController
 {
     private array $viewData;
 
     public function __construct()
     {
+        parent::__construct();
         $this->viewData = [
             "videojuegos" => []
         ];
