@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="{{BASE_DIR}}/public/css/appstyle.css" />
   <script src="https://kit.fontawesome.com/{{FONT_AWESOME_KIT}}.js" crossorigin="anonymous"></script>
   {{foreach SiteLinks}}
-    <link rel="stylesheet" href="/{{~BASE_DIR}}/{{this}}" />
+    <link rel="stylesheet" href="{{~BASE_DIR}}/{{this}}" />
   {{endfor SiteLinks}}
   {{foreach BeginScripts}}
     <script src="{{~BASE_DIR}}/{{this}}"></script>
