@@ -12,6 +12,7 @@ class Videojuegos extends PublicController
 
     public function __construct()
     {
+        parent::__construct();
         $this->viewData = [
             "videojuegos" => []
         ];
