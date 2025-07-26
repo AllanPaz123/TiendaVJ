@@ -2,181 +2,114 @@
 
 namespace Controllers\Videojuegos;
 
-use Controllers\PublicController;
-use Dao\Videojuegos\Inventarios as InventarioDAO;
-use Dao\Videojuegos\Videojuegos as VideojuegosDAO;
-use Utilities\Site;
-use Utilities\Validators;
+use Controllers\PrivateController;
 use Views\Renderer;
+use Dao\Videojuegos\Inventarios as DaoInventario;
+use Utilities\Site;
 
-const LIST_URL = "index.php?page=Videojuegos-Inventario";
-const XSR_KEY = "xsrToken_inventario";
-
-class Inventario extends PublicController
+class Inventario extends PrivateController
 {
-    private array $viewData;
-    private array $modes;
-
-    public function __construct()
-    {
-        $this->modes = [
-            "INS" => 'Agregando nuevo inventario',
-            "UPD" => 'Editando inventario %s',
-            "DEL" => 'Eliminando inventario %s',
-            "DSP" => 'Detalle del inventario %s'
-        ];
-
-        $this->viewData = [
-            "inventarioid" => 0,
-            "videojuegocod" => "",
-            "stock" => 0,
-            "ubicacion" => "",
-            "mode" => "",
-            "modeDsc" => "",
-            "errores" => [],
-            "readonly" => "",
-            "showAction" => true,
-            "xsrToken" => "",
-            "videojuegos" => [] // Para dropdown
-        ];
-    }
+    private array $viewData = [];
+    private string $mode = "DSP";
+    private array $modeDescriptions = [
+        "DSP" => "Detalle de inventario %s",
+        "INS" => "Nuevo Registro de Inventario",
+        "UPD" => "Editar inventario %s",
+        "DEL" => "Eliminar inventario %s"
+    ];
 
     public function run(): void
     {
-        $this->capturarModoPantalla();
-        $this->datosDeDao();
+        $this->viewData = [
+            "mode" => "DSP",
+            "inventarioid" => "",
+            "videojuegocod" => "",
+            "stock" => "0",
+            "ubicacion" => "",
+            "modeDsc" => "",
+            "readonly" => "",
+            "showAction" => true,
+            "xsrToken" => ""
+        ];
+
+        $this->mode = $_GET["mode"] ?? "DSP";
+        $id = $_GET["inventarioid"] ?? null;
+
+        if (!in_array($this->mode, ["DSP", "INS", "UPD", "DEL"])) {
+            Site::redirectToWithMsg("index.php?page=Videojuegos-Inventarios", "Modo no válido");
+        }
+
+        if ($this->mode !== "INS" && !$id) {
+            Site::redirectToWithMsg("index.php?page=Videojuegos-Inventarios", "ID requerido");
+        }
+
+        if ($id) {
+            $tmp = DaoInventario::obtenerPorId(intval($id));
+            if (!$tmp) {
+                Site::redirectToWithMsg("index.php?page=Videojuegos-Inventarios", "Registro no encontrado");
+            }
+            $this->viewData = array_merge($this->viewData, $tmp);
+        }
+
         if ($this->isPostBack()) {
-            $this->datosFormulario();
-            $this->validarDatos();
-            if (count($this->viewData["errores"]) === 0) {
-                $this->procesarDatos();
+            $this->viewData["videojuegocod"] = $_POST["videojuegocod"] ?? "";
+            $this->viewData["stock"] = $_POST["stock"] ?? "0";
+            $this->viewData["ubicacion"] = $_POST["ubicacion"] ?? "";
+            $this->viewData["xsrToken"] = $_POST["xsrToken"] ?? "";
+
+            if ($this->viewData["xsrToken"] !== $_SESSION["xsrTokenInventario"]) {
+                Site::redirectToWithMsg("index.php?page=Videojuegos-Inventarios", "Token inválido");
             }
-        }
-        $this->prepararVista();
-        Renderer::render("Videojuegos/InventarioForm", $this->viewData);
-    }
 
-    private function throwError(string $message)
-    {
-        Site::redirectToWithMsg(LIST_URL, $message);
-    }
+            $hasErrors = false;
 
-    private function capturarModoPantalla()
-    {
-        if (isset($_GET["mode"])) {
-            $this->viewData["mode"] = $_GET["mode"];
-            if (!isset($this->modes[$this->viewData["mode"]])) {
-                $this->throwError("BAD REQUEST: Modo no válido.");
+            if (!filter_var($this->viewData["videojuegocod"], FILTER_VALIDATE_INT)) {
+                $this->viewData["error_videojuegocod"] = "Código inválido";
+                $hasErrors = true;
             }
-        }
-    }
 
-    private function datosDeDao()
-    {
-        if ($this->viewData["mode"] !== "INS") {
-            if (isset($_GET["inventarioid"])) {
-                $this->viewData["inventarioid"] = intval($_GET["inventarioid"]);
-                $inv = InventarioDAO::getInventarioById($this->viewData["inventarioid"]);
-                if ($inv) {
-                    $this->viewData = array_merge($this->viewData, $inv);
-                } else {
-                    $this->throwError("No se encontró el inventario solicitado.");
+            if (!filter_var($this->viewData["stock"], FILTER_VALIDATE_INT)) {
+                $this->viewData["error_stock"] = "Stock inválido";
+                $hasErrors = true;
+            }
+
+            if (empty($this->viewData["ubicacion"])) {
+                $this->viewData["error_ubicacion"] = "Debe indicar una ubicación";
+                $hasErrors = true;
+            }
+
+            if (!$hasErrors) {
+                $datosGuardar = [
+                    "videojuegocod" => intval($this->viewData["videojuegocod"]),
+                    "stock" => intval($this->viewData["stock"]),
+                    "ubicacion" => $this->viewData["ubicacion"]
+                ];
+                if ($this->mode !== "INS") {
+                    $datosGuardar["inventarioid"] = intval($this->viewData["inventarioid"]);
                 }
-            } else {
-                $this->throwError("No se proporcionó el ID del inventario.");
-            }
-        }
-        // Cargar videojuegos disponibles para combo
-        $this->viewData["videojuegos"] = VideojuegosDAO::getVideojuegos();
-    }
 
-    private function datosFormulario()
-    {
-        foreach (["videojuegocod", "stock", "ubicacion", "xsrToken"] as $campo) {
-            if (isset($_POST[$campo])) {
-                $this->viewData[$campo] = $_POST[$campo];
-            }
-        }
-        $this->viewData["stock"] = intval($this->viewData["stock"]);
-        $this->viewData["videojuegocod"] = intval($this->viewData["videojuegocod"]);
-    }
-
-    private function validarDatos()
-    {
-        if ($this->viewData["videojuegocod"] <= 0) {
-            $this->viewData["errores"]["videojuegocod"] = "Debe seleccionar un videojuego.";
-        }
-        if ($this->viewData["stock"] < 0) {
-            $this->viewData["errores"]["stock"] = "El stock no puede ser negativo.";
-        }
-        if (Validators::IsEmpty($this->viewData["ubicacion"])) {
-            $this->viewData["errores"]["ubicacion"] = "La ubicación es requerida.";
-        }
-
-        $tmpXsrToken = $_SESSION[XSR_KEY];
-        if ($this->viewData["xsrToken"] !== $tmpXsrToken) {
-            error_log("Token inválido en inventario.");
-            $this->throwError("Solicitud inválida. Intente de nuevo.");
-        }
-    }
-
-    private function procesarDatos()
-    {
-        switch ($this->viewData["mode"]) {
-            case "INS":
-                if (InventarioDAO::nuevoInventario(
-                    $this->viewData["videojuegocod"],
-                    $this->viewData["stock"],
-                    $this->viewData["ubicacion"]
-                ) > 0) {
-                    Site::redirectToWithMsg(LIST_URL, "Inventario agregado exitosamente.");
-                } else {
-                    $this->viewData["errores"]["global"] = ["Error al agregar el inventario."];
+                switch ($this->mode) {
+                    case "INS":
+                        DaoInventario::insertar($datosGuardar);
+                        break;
+                    case "UPD":
+                        DaoInventario::actualizar($datosGuardar);
+                        break;
+                    case "DEL":
+                        DaoInventario::eliminar(intval($this->viewData["inventarioid"]));
+                        break;
                 }
-                break;
-            case "UPD":
-                if (InventarioDAO::actualizarInventario(
-                    $this->viewData["inventarioid"],
-                    $this->viewData["videojuegocod"],
-                    $this->viewData["stock"],
-                    $this->viewData["ubicacion"]
-                )) {
-                    Site::redirectToWithMsg(LIST_URL, "Inventario actualizado exitosamente.");
-                } else {
-                    $this->viewData["errores"]["global"] = ["Error al actualizar el inventario."];
-                }
-                break;
-            case "DEL":
-                if (InventarioDAO::eliminarInventario($this->viewData["inventarioid"])) {
-                    Site::redirectToWithMsg(LIST_URL, "Inventario eliminado exitosamente.");
-                } else {
-                    $this->viewData["errores"]["global"] = ["Error al eliminar el inventario."];
-                }
-                break;
-        }
-    }
-
-    private function prepararVista()
-    {
-        $this->viewData["modeDsc"] = sprintf(
-            $this->modes[$this->viewData["mode"]],
-            $this->viewData["inventarioid"]
-        );
-
-        if (count($this->viewData["errores"]) > 0) {
-            foreach ($this->viewData["errores"] as $campo => $error) {
-                $this->viewData["error_" . $campo] = $error;
+                Site::redirectToWithMsg("index.php?page=Videojuegos-Inventarios", "Operación ejecutada correctamente");
             }
         }
 
-        if (in_array($this->viewData["mode"], ["DEL", "DSP"])) {
-            $this->viewData["readonly"] = "readonly";
-        }
-        if ($this->viewData["mode"] === "DSP") {
-            $this->viewData["showAction"] = false;
-        }
+        $this->viewData["mode"] = $this->mode;
+        $this->viewData["modeDsc"] = sprintf($this->modeDescriptions[$this->mode], $this->viewData["inventarioid"]);
+        $this->viewData["readonly"] = ($this->mode === "DSP" || $this->mode === "DEL") ? "readonly" : "";
+        $this->viewData["showAction"] = !($this->mode === "DSP");
+        $this->viewData["xsrToken"] = hash("sha256", random_int(0, 1000000) . time() . 'inventario' . $this->mode);
+        $_SESSION["xsrTokenInventario"] = $this->viewData["xsrToken"];
 
-        $this->viewData["xsrToken"] = hash("sha256", random_int(0, 1000000) . time() . 'inventario' . $this->viewData["mode"]);
-        $_SESSION[XSR_KEY] = $this->viewData["xsrToken"];
+        Renderer::render("Videojuegos/inventario", $this->viewData);
     }
 }

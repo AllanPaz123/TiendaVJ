@@ -5,10 +5,10 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Videojuego ID</th>
-                <th>Stock</th>
-                <th>Ubicación</th>
+                <th align="center">ID</th>
+                <th align="center">Videojuego</th>
+                <th align="center">Stock</th>
+                <th align="center">Ubicación</th>
                 <th>
                     <a href="index.php?page=Videojuegos-Inventario&mode=INS&inventarioid=">
                         Nuevo
@@ -19,22 +19,14 @@
         <tbody>
             {{foreach inventario}}
             <tr>
-                <td>{{inventarioid}}</td>
-                <td>{{videojuegocod}}</td>
-                <td>{{stock}}</td>
-                <td>{{ubicacion}}</td>
+                <td align="center">{{inventarioid}}</td>
+                <td align="center">{{videojuegocod}}</td>
+                <td align="center">{{stock}}</td>
+                <td align="center">{{ubicacion}}</td>
                 <td>
-                    <a href="index.php?page=Videojuegos-Inventario&mode=DSP&inventarioid={{inventarioid}}">
-                        Ver
-                    </a>
-                    &nbsp;
-                    <a href="index.php?page=Videojuegos-Inventario&mode=UPD&inventarioid={{inventarioid}}">
-                        Editar
-                    </a>
-                    &nbsp;
-                    <a href="index.php?page=Videojuegos-Inventario&mode=DEL&inventarioid={{inventarioid}}">
-                        Eliminar
-                    </a>
+                    <a href="index.php?page=Videojuegos-Inventario&mode=DSP&inventarioid={{inventarioid}}">Ver</a>&nbsp;
+                    <a href="index.php?page=Videojuegos-Inventario&mode=UPD&inventarioid={{inventarioid}}">Editar</a>&nbsp;
+                    <a href="index.php?page=Videojuegos-Inventario&mode=DEL&inventarioid={{inventarioid}}">Eliminar</a>
                 </td>
             </tr>
             {{endfor inventario}}

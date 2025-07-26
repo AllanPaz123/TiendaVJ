@@ -2,11 +2,11 @@
 
 namespace Controllers\Videojuegos;
 
-use Controllers\PublicController;
-use Dao\Videojuegos\Inventarios as InventarioDAO;
+use Controllers\PrivateController;
+use Dao\Videojuegos\Inventarios as DaoInventario;
 use Views\Renderer;
 
-class Inventario extends PublicController
+class Inventarios extends PrivateController
 {
     private array $viewData;
 
@@ -20,7 +20,7 @@ class Inventario extends PublicController
 
     public function run(): void
     {
-        $this->viewData["inventario"] = InventarioDAO::getInventario();
-        Renderer::render("Videojuegos/Inventario", $this->viewData);
+        $this->viewData["inventario"] = DaoInventario::obtenerTodos();
+        Renderer::render("Videojuegos/inventarios", $this->viewData);
     }
 }

@@ -2,11 +2,12 @@
 
 namespace Controllers\Videojuegos;
 
+use Controllers\PrivateController;
 use Controllers\PublicController;
 use Dao\Videojuegos\Videojuegos as VideojuegosDAO;
 use Views\Renderer;
 
-class Videojuegos extends PublicController
+class Videojuegos extends PrivateController
 {
     private array $viewData;
 
